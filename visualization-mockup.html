@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>性格可视化方案对比</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1a1a2e; color: #fff; font-family: -apple-system, 'PingFang SC', sans-serif; padding: 20px; }
+h1 { text-align: center; margin-bottom: 8px; font-size: 22px; }
+.subtitle { text-align: center; color: #888; margin-bottom: 30px; font-size: 14px; }
+.mockup { background: #fff; border-radius: 16px; padding: 24px; margin-bottom: 30px; color: #333; max-width: 400px; }
+.mockup h2 { font-size: 16px; color: #666; margin-bottom: 16px; text-align: center; }
+.mockup canvas { display: block; margin: 0 auto; }
+.mockup .note { font-size: 12px; color: #999; text-align: center; margin-top: 12px; line-height: 1.6; }
+.comparison { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+.comparison > div { flex: 1; min-width: 340px; max-width: 420px; }
+.tag { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; margin-left: 4px; }
+</style>
+</head>
+<body>
+
+<h1>🎨 性格可视化方案对比</h1>
+<p class="subtitle">示例数据：红色55 / 蓝色20 / 黄色15 / 绿色10 / E人65 — 结果：红色E人</p>
+
+<div class="comparison">
+
+<!-- ===== 方案1：彩色饼图 + E/I滑块 ===== -->
+<div class="mockup">
+  <h2>方案一：彩色环形图 + E/I 轴</h2>
+  <canvas id="c1" width="360" height="360"></canvas>
+  <p class="note">经典直观，四色比例一目了然<br>E/I 独立展示，不混在一起</p>
+</div>
+
+<!-- ===== 方案2：性格光谱条 ===== -->
+<div class="mockup">
+  <h2>方案二：性格光谱条</h2>
+  <canvas id="c2" width="360" height="300"></canvas>
+  <p class="note">像DNA条形码，每人独一无二的配色<br>简洁现代，适合做头像/签名图</p>
+</div>
+
+<!-- ===== 方案3：性格之花 ===== -->
+<div class="mockup">
+  <h2>方案三：性格之花</h2>
+  <canvas id="c3" width="360" height="360"></canvas>
+  <p class="note">创新造型，像一朵属于你的花<br>花瓣大小 = 性格浓度，中心 = E/I</p>
+</div>
+
+<!-- ===== 方案4：融合方案 ===== -->
+<div class="mockup">
+  <h2>方案四：融合（环形图 + 光谱条）</h2>
+  <canvas id="c4" width="360" height="400"></canvas>
+  <p class="note">环形图展示比例 + 光谱条展示个性<br>信息最全，视觉层次丰富</p>
+</div>
+
+</div>
+
+<script>
+const DATA = { red: 55, blue: 20, yellow: 15, green: 10, ei: 65 };
+const COLORS = {
+  red: '#E74C3C', blue: '#3498DB', yellow: '#F39C12', green: '#2ECC71'
+};
+const LABELS = { red: '红色', blue: '蓝色', yellow: '黄色', green: '绿色' };
+const total = DATA.red + DATA.blue + DATA.yellow + DATA.green;
+
+// ===== 方案1：环形图 + E/I 轴 =====
+(function() {
+  const c = document.getElementById('c1');
+  const ctx = c.getContext('2d');
+  const cx = 180, cy = 170, R = 110, r = 65;
+
+  const segments = [
+    { key: 'red', val: DATA.red },
+    { key: 'blue', val: DATA.blue },
+    { key: 'yellow', val: DATA.yellow },
+    { key: 'green', val: DATA.green }
+  ];
+  segments.sort((a, b) => b.val - a.val);
+
+  let angle = -Math.PI / 2;
+  segments.forEach(seg => {
+    const sweep = (seg.val / total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, angle, angle + sweep);
+    ctx.arc(cx, cy, r, angle + sweep, angle, true);
+    ctx.closePath();
+    ctx.fillStyle = COLORS[seg.key];
+    ctx.fill();
+
+    // 标签
+    const mid = angle + sweep / 2;
+    const lx = cx + Math.cos(mid) * (R + 22);
+    const ly = cy + Math.sin(mid) * (R + 22);
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillStyle = COLORS[seg.key];
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(LABELS[seg.key], lx, ly - 8);
+    ctx.font = '12px sans-serif';
+    ctx.fillStyle = '#666';
+    ctx.fillText(Math.round(seg.val / total * 100) + '%', lx, ly + 10);
+
+    angle += sweep;
+  });
+
+  // 中心文字
+  ctx.font = 'bold 18px sans-serif';
+  ctx.fillStyle = '#333';
+  ctx.textAlign = 'center';
+  ctx.fillText('红色E人', cx, cy - 8);
+  ctx.font = '12px sans-serif';
+  ctx.fillStyle = '#999';
+  ctx.fillText('快乐型', cx, cy + 14);
+
+  // E/I 轴
+  const barY = cy + R + 40;
+  const barW = 240, barX = cx - barW / 2;
+  ctx.fillStyle = '#E8E8F0';
+  roundRect(ctx, barX, barY, barW, 14, 7);
+  ctx.fill();
+  const eiW = (DATA.ei / 100) * barW;
+  const eiGrad = ctx.createLinearGradient(barX, 0, barX + barW, 0);
+  eiGrad.addColorStop(0, '#A29BFE');
+  eiGrad.addColorStop(1, '#6C5CE7');
+  ctx.fillStyle = eiGrad;
+  roundRect(ctx, barX, barY, eiW, 14, 7);
+  ctx.fill();
+
+  ctx.font = 'bold 13px sans-serif';
+  ctx.fillStyle = '#6C5CE7';
+  ctx.textAlign = 'right';
+  ctx.fillText('I', barX - 10, barY + 11);
+  ctx.textAlign = 'left';
+  ctx.fillText('E', barX + barW + 10, barY + 11);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff';
+  ctx.fillText('E人 65', barX + eiW / 2, barY + 11);
+})();
+
+// ===== 方案2：性格光谱条 =====
+(function() {
+  const c = document.getElementById('c2');
+  const ctx = c.getContext('2d');
+  const W = 360, barX = 30, barW = W - 60, barY = 60, barH = 50;
+
+  const segments = [
+    { key: 'red', val: DATA.red },
+    { key: 'blue', val: DATA.blue },
+    { key: 'yellow', val: DATA.yellow },
+    { key: 'green', val: DATA.green }
+  ];
+  segments.sort((a, b) => b.val - a.val);
+
+  // 圆角光谱条
+  roundRect(ctx, barX, barY, barW, barH, barH / 2);
+  ctx.clip();
+
+  let x = barX;
+  segments.forEach(seg => {
+    const w = (seg.val / total) * barW;
+    ctx.fillStyle = COLORS[seg.key];
+    ctx.fillRect(x, barY, w + 1, barH); // +1 避免缝隙
+    x += w;
+  });
+
+  // 标签
+  x = barX;
+  segments.forEach(seg => {
+    const w = (seg.val / total) * barW;
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillStyle = '#333';
+    ctx.textAlign = 'center';
+    if (w > 40) {
+      ctx.fillStyle = '#fff';
+      ctx.fillText(LABELS[seg.key], x + w / 2, barY + barH / 2 + 1);
+      ctx.font = '10px sans-serif';
+      ctx.fillText(Math.round(seg.val / total * 100) + '%', x + w / 2, barY + barH / 2 + 16);
+    }
+    x += w;
+  });
+
+  // E/I 光谱条
+  const eiY = barY + barH + 60;
+  ctx.save();
+  roundRect(ctx, barX, eiY, barW, 30, 15);
+  ctx.clip();
+
+  const eiGrad = ctx.createLinearGradient(barX, 0, barX + barW, 0);
+  eiGrad.addColorStop(0, '#C8D6E5');
+  eiGrad.addColorStop(0.5, '#DFE6E9');
+  eiGrad.addColorStop(1, '#A29BFE');
+  ctx.fillStyle = eiGrad;
+  ctx.fillRect(barX, eiY, barW, 30);
+  ctx.restore();
+
+  // E/I 指示器
+  const dotX = barX + (DATA.ei / 100) * barW;
+  ctx.beginPath();
+  ctx.arc(dotX, eiY + 15, 10, 0, Math.PI * 2);
+  ctx.fillStyle = '#6C5CE7';
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.font = 'bold 9px sans-serif';
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.fillText('E', dotX, eiY + 18);
+
+  ctx.font = '12px sans-serif';
+  ctx.fillStyle = '#999';
+  ctx.textAlign = 'right';
+  ctx.fillText('I人', barX - 8, eiY + 19);
+  ctx.textAlign = 'left';
+  ctx.fillText('E人', barX + barW + 8, eiY + 19);
+
+  // 性格标签
+  ctx.font = 'bold 22px sans-serif';
+  ctx.fillStyle = '#333';
+  ctx.textAlign = 'center';
+  ctx.fillText('红色E人', W / 2, eiY + 80);
+  ctx.font = '13px sans-serif';
+  ctx.fillStyle = COLORS.red;
+  ctx.fillText('快乐型 · 人群中的WiFi', W / 2, eiY + 105);
+})();
+
+// ===== 方案3：性格之花 =====
+(function() {
+  const c = document.getElementById('c3');
+  const ctx = c.getContext('2d');
+  const cx = 180, cy = 180;
+
+  const petals = [
+    { key: 'red', val: DATA.red, angle: -Math.PI / 2 },
+    { key: 'yellow', val: DATA.yellow, angle: 0 },
+    { key: 'blue', val: DATA.blue, angle: Math.PI / 2 },
+    { key: 'green', val: DATA.green, angle: Math.PI }
+  ];
+  const maxVal = Math.max(...petals.map(p => p.val));
+
+  // 花瓣
+  petals.forEach(p => {
+    const len = 30 + (p.val / maxVal) * 80;
+    const wid = 22 + (p.val / maxVal) * 30;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(p.angle);
+
+    ctx.beginPath();
+    ctx.ellipse(len / 2 + 12, 0, len / 2, wid / 2, 0, 0, Math.PI * 2);
+    ctx.fillStyle = COLORS[p.key] + 'CC';
+    ctx.fill();
+    ctx.strokeStyle = COLORS[p.key];
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.restore();
+  });
+
+  // 中心圆（E/I）
+  const centerR = 18 + (DATA.ei / 100) * 12;
+  const centerGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, centerR);
+  centerGrad.addColorStop(0, '#6C5CE7');
+  centerGrad.addColorStop(1, '#A29BFE');
+  ctx.beginPath();
+  ctx.arc(cx, cy, centerR, 0, Math.PI * 2);
+  ctx.fillStyle = centerGrad;
+  ctx.fill();
+  ctx.font = 'bold 14px sans-serif';
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('E', cx, cy);
+
+  // 花瓣标签
+  petals.forEach(p => {
+    const len = 30 + (p.val / maxVal) * 80;
+    const lx = cx + Math.cos(p.angle) * (len + 28);
+    const ly = cy + Math.sin(p.angle) * (len + 28);
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillStyle = COLORS[p.key];
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(LABELS[p.key], lx, ly - 7);
+    ctx.font = '11px sans-serif';
+    ctx.fillStyle = '#666';
+    ctx.fillText(Math.round(p.val / total * 100) + '%', lx, ly + 9);
+  });
+
+  // 底部说明
+  ctx.font = '13px sans-serif';
+  ctx.fillStyle = '#999';
+  ctx.textAlign = 'center';
+  ctx.fillText('中心大小 = E人浓度', cx, cy + 155);
+  ctx.fillText('花瓣大小 = 性格浓度', cx, cy + 173);
+})();
+
+// ===== 方案4：融合方案 =====
+(function() {
+  const c = document.getElementById('c4');
+  const ctx = c.getContext('2d');
+  const W = 360;
+
+  // 上半部分：环形图
+  const cx = W / 2, cy = 150, R = 80, r = 48;
+  const segments = [
+    { key: 'red', val: DATA.red },
+    { key: 'blue', val: DATA.blue },
+    { key: 'yellow', val: DATA.yellow },
+    { key: 'green', val: DATA.green }
+  ];
+  segments.sort((a, b) => b.val - a.val);
+
+  let angle = -Math.PI / 2;
+  segments.forEach(seg => {
+    const sweep = (seg.val / total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, angle, angle + sweep);
+    ctx.arc(cx, cy, r, angle + sweep, angle, true);
+    ctx.closePath();
+    ctx.fillStyle = COLORS[seg.key];
+    ctx.fill();
+    angle += sweep;
+  });
+
+  ctx.font = 'bold 18px sans-serif';
+  ctx.fillStyle = '#333';
+  ctx.textAlign = 'center';
+  ctx.fillText('红色E人', cx, cy - 6);
+  ctx.font = '11px sans-serif';
+  ctx.fillStyle = '#999';
+  ctx.fillText('快乐型', cx, cy + 12);
+
+  // 图例
+  let ly = cy + R + 22;
+  segments.forEach(seg => {
+    ctx.fillStyle = COLORS[seg.key];
+    roundRect(ctx, cx - 60, ly, 10, 10, 2);
+    ctx.fill();
+    ctx.font = '12px sans-serif';
+    ctx.fillStyle = '#333';
+    ctx.textAlign = 'left';
+    ctx.fillText(`${LABELS[seg.key]} ${Math.round(seg.val / total * 100)}%`, cx - 44, ly + 9);
+    ly += 20;
+  });
+
+  // 下半部分：光谱条
+  const barY = ly + 20, barX = 30, barW = W - 60, barH = 36;
+
+  ctx.save();
+  roundRect(ctx, barX, barY, barW, barH, barH / 2);
+  ctx.clip();
+  let x = barX;
+  segments.forEach(seg => {
+    const w = (seg.val / total) * barW;
+    ctx.fillStyle = COLORS[seg.key];
+    ctx.fillRect(x, barY, w + 1, barH);
+    x += w;
+  });
+  ctx.restore();
+
+  // E/I 轴
+  const eiY = barY + barH + 25;
+  ctx.fillStyle = '#E8E8F0';
+  roundRect(ctx, barX, eiY, barW, 12, 6);
+  ctx.fill();
+  const eiW = (DATA.ei / 100) * barW;
+  const eiGrad = ctx.createLinearGradient(barX, 0, barX + barW, 0);
+  eiGrad.addColorStop(0, '#C8D6E5');
+  eiGrad.addColorStop(1, '#6C5CE7');
+  ctx.fillStyle = eiGrad;
+  roundRect(ctx, barX, eiY, eiW, 12, 6);
+  ctx.fill();
+  ctx.font = '10px sans-serif';
+  ctx.fillStyle = '#999';
+  ctx.textAlign = 'right';
+  ctx.fillText('I', barX - 8, eiY + 10);
+  ctx.textAlign = 'left';
+  ctx.fillText('E', barX + barW + 8, eiY + 10);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 9px sans-serif';
+  ctx.fillText('E人 65%', barX + eiW / 2, eiY + 10);
+
+  // 标签
+  ctx.font = '10px sans-serif';
+  ctx.fillStyle = '#999';
+  ctx.textAlign = 'center';
+  ctx.fillText('你的性格配色', cx, barY - 8);
+  ctx.fillText('你的能量方向', cx, eiY - 8);
+})();
+
+// 圆角矩形工具
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+</script>
+</body>
+</html>

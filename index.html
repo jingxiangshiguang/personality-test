@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>四色性格测试 | 你是哪种E人/I人？</title>
+  <meta name="description" content="红蓝黄绿四色性格 × E人I人，测测你的真实性格是什么。">
+  <link rel="stylesheet" href="css/style.css">
+  <!-- Open Graph for sharing -->
+  <meta property="og:title" content="四色性格测试 | 你是哪种E人/I人？">
+  <meta property="og:description" content="10道题测出你的性格密码，快来看看你是红蓝黄绿哪一种！">
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- ============ 首页 ============ -->
+  <div class="page home-page active" id="page-home">
+    <div class="home-emoji">🧠</div>
+    <h1 class="home-title">你是哪种E人/I人？<br>四色性格揭秘</h1>
+    <p class="home-subtitle">
+      10 道情境题，找到你的性格密码<br>
+      红蓝黄绿 × E人I人 = 你的专属性格标签
+    </p>
+    <div class="home-tags">
+      <span class="home-tag">🔴 红色 · 快乐型</span>
+      <span class="home-tag">🔵 蓝色 · 完美型</span>
+      <span class="home-tag">🟡 黄色 · 力量型</span>
+      <span class="home-tag">🟢 绿色 · 和平型</span>
+    </div>
+    <button class="btn-start" onclick="startQuiz()">开始测试 →</button>
+  </div>
+
+  <!-- ============ 答题页 ============ -->
+  <div class="page quiz-page" id="page-quiz">
+    <div class="quiz-progress">
+      <div class="quiz-progress-bar">
+        <div class="quiz-progress-fill" id="progress-fill"></div>
+      </div>
+      <span class="quiz-progress-text" id="progress-text">1/10</span>
+    </div>
+    <div class="quiz-question-num" id="question-num">Q1</div>
+    <div class="quiz-scene" id="question-scene"></div>
+    <div class="quiz-options" id="options-container"></div>
+  </div>
+
+  <!-- ============ 计算页（闪回分析）============ -->
+  <div class="page loading-page" id="page-loading">
+    <div id="loading-content">
+      <div class="loading-emoji">🔮</div>
+      <p class="loading-text">正在分析你的性格密码...</p>
+    </div>
+  </div>
+
+  <!-- ============ 结果页 ============ -->
+  <div class="page result-page" id="page-result">
+    <!-- 由 JS 动态生成 -->
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- 隐藏的分享卡片 Canvas -->
+  <div class="share-canvas-wrapper">
+    <canvas id="share-canvas" width="750" height="1334"></canvas>
+  </div>
+</div>
+
+<script src="js/questions.js"></script>
+<script src="js/results.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

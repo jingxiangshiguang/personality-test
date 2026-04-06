@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>环形图 E/I 效果对比</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1a1a2e; color: #fff; font-family: -apple-system, 'PingFang SC', sans-serif; padding: 30px 20px; }
+h1 { text-align: center; font-size: 20px; margin-bottom: 8px; }
+.subtitle { text-align: center; color: #888; font-size: 13px; margin-bottom: 40px; line-height: 1.6; }
+.row { display: flex; flex-wrap: wrap; gap: 30px; justify-content: center; margin-bottom: 50px; }
+.card { background: #fff; border-radius: 20px; padding: 30px 24px 24px; color: #333; text-align: center; width: 320px; }
+.card h3 { font-size: 15px; margin-bottom: 16px; }
+.card canvas { display: block; margin: 0 auto; }
+.card .note { font-size: 12px; color: #888; line-height: 1.7; margin-top: 16px; border-top: 1px solid #eee; padding-top: 14px; }
+.label-e { color: #E74C3C; font-weight: bold; }
+.label-i { color: #6C5CE7; font-weight: bold; }
+.section { text-align: center; margin-bottom: 20px; }
+.section h2 { font-size: 14px; color: #aaa; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<h1>🎨 环形图 + 大小 + 光晕 + 中心箭头</h1>
+<p class="subtitle">做法1（大小不同）+ 做法3（光晕方向）+ 箭头指示<br>左边 E人，右边 I人 —— 一眼看出区别</p>
+
+<div class="row">
+
+<!-- ===== E人 ===== -->
+<div class="card">
+  <h3><span class="label-e">E人</span> — 大环 + 向外光晕 + 箭头向外</h3>
+  <canvas id="e_person" width="280" height="280"></canvas>
+  <div class="note">
+    环形大 = 能量外放，占据更多空间<br>
+    光晕向外扩散 = 温暖明亮<br>
+    中心箭头朝外 = 能量向人群释放<br><br>
+    <strong style="color:#E74C3C;">第一感觉：热情、外向、有感染力</strong>
+  </div>
+</div>
+
+<!-- ===== I人 ===== -->
+<div class="card">
+  <h3><span class="label-i">I人</span> — 小环 + 向内光晕 + 箭头向内</h3>
+  <canvas id="i_person" width="280" height="280"></canvas>
+  <div class="note">
+    环形小 = 能量内收，紧凑内敛<br>
+    光晕向内收拢 = 清冷安静<br>
+    中心箭头朝内 = 能量向内心汇聚<br><br>
+    <strong style="color:#6C5CE7;">第一感觉：沉稳、内敛、有深度</strong>
+  </div>
+</div>
+
+</div>
+
+<!-- ===== 极端E人对比 ===== -->
+<div class="section">
+  <h2>极端对比：纯E vs 纯I</h2>
+</div>
+<div class="row">
+  <div class="card">
+  <h3><span class="label-e">纯E人（E=95）</span></h3>
+    <canvas id="extreme_e" width="280" height="280"></canvas>
+    <div class="note">环形最大，光晕最亮，箭头最大</div>
+  </div>
+  <div class="card">
+    <h3><span class="label-i">纯I人（I=95）</span></h3>
+    <canvas id="extreme_i" width="280" height="280"></canvas>
+    <div class="note">环形最小，光晕最内敛，箭头最小</div>
+  </div>
+</div>
+
+<!-- ===== 中间值对比 ===== -->
+<div class="section">
+  <h2>中间值对比：轻微偏E vs 轻微偏I</h2>
+</div>
+<div class="row">
+  <div class="card">
+    <h3>E人 55（轻微偏E）</h3>
+    <canvas id="mid_e" width="280" height="280"></canvas>
+    <div class="note">环形略大，光晕微弱向外，箭头小</div>
+  </div>
+  <div class="card">
+    <h3>I人 55（轻微偏I）</h3>
+    <canvas id="mid_i" width="280" height="280"></canvas>
+    <div class="note">环形略小，光晕微弱向内，箭头小</div>
+  </div>
+</div>
+
+<script>
+const SEGMENTS = [
+  { key: 'red', val: 55, color: '#E74C3C', label: '红' },
+  { key: 'blue', val: 20, color: '#3498DB', label: '蓝' },
+  { key: 'yellow', val: 15, color: '#F39C12', label: '黄' },
+  { key: 'green', val: 10, color: '#2ECC71', label: '绿' }
+];
+const total = SEGMENTS.reduce((s, seg) => s + seg.val, 0);
+
+function drawChart(canvasId, eiValue, options = {}) {
+  const c = document.getElementById(canvasId);
+  const ctx = c.getContext('2d');
+  const W = 280, cx = W / 2, cy = W / 2;
+
+  // E/I 影响环形大小：ei=0→最小, ei=100→最大
+  const eiNorm = eiValue / 100; // 0-1
+  const baseR = 65;
+  const maxR = 100;
+  const R = baseR + (maxR - baseR) * eiNorm; // 65~100
+  const r = R * 0.55;
+
+  // 光晕方向
+  const isE = eiValue >= 50;
+
+  // 背景光晕
+  if (isE) {
+    // 向外扩散的暖色光晕
+    const glowR = R + 20 + eiNorm * 30;
+    const glow = ctx.createRadialGradient(cx, cy, R * 0.8, cx, cy, glowR);
+    glow.addColorStop(0, `rgba(255,107,107,${0.06 + eiNorm * 0.1})`);
+    glow.addColorStop(0.5, `rgba(255,159,67,${0.03 + eiNorm * 0.05})`);
+    glow.addColorStop(1, 'rgba(255,200,100,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(cx, cy, glowR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 向外的放射线
+    const rayCount = 20;
+    for (let i = 0; i < rayCount; i++) {
+      const a = (i / rayCount) * Math.PI * 2;
+      const innerDist = R + 3;
+      const outerDist = R + 8 + (i % 3) * 5 * eiNorm;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * innerDist, cy + Math.sin(a) * innerDist);
+      ctx.lineTo(cx + Math.cos(a) * outerDist, cy + Math.sin(a) * outerDist);
+      ctx.strokeStyle = `rgba(231,76,60,${0.08 + eiNorm * 0.15})`;
+      ctx.lineWidth = 1.2;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    }
+  } else {
+    // 向内收拢的冷色光晕
+    const inwardStrength = 1 - eiNorm; // I越强越明显
+    const glow = ctx.createRadialGradient(cx, cy, r * 0.3, cx, cy, R + 15);
+    glow.addColorStop(0, `rgba(162,155,254,${0.08 + inwardStrength * 0.12})`);
+    glow.addColorStop(0.6, `rgba(108,92,231,${0.03 + inwardStrength * 0.05})`);
+    glow.addColorStop(1, 'rgba(108,92,231,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R + 15, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 向内收敛的线
+    const rayCount = 20;
+    for (let i = 0; i < rayCount; i++) {
+      const a = (i / rayCount) * Math.PI * 2;
+      const outerDist = R + 5 + (i % 3) * 5 * inwardStrength;
+      const innerDist = R - 2;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * outerDist, cy + Math.sin(a) * outerDist);
+      ctx.lineTo(cx + Math.cos(a) * innerDist, cy + Math.sin(a) * innerDist);
+      ctx.strokeStyle = `rgba(108,92,231,${0.08 + inwardStrength * 0.15})`;
+      ctx.lineWidth = 1.2;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    }
+  }
+
+  // 四色环形图
+  let angle = -Math.PI / 2;
+  SEGMENTS.forEach(seg => {
+    const sweep = (seg.val / total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, angle, angle + sweep);
+    ctx.arc(cx, cy, r, angle + sweep, angle, true);
+    ctx.closePath();
+    ctx.fillStyle = seg.color;
+    ctx.fill();
+
+    // 标签（只在环形足够大时显示）
+    if (R > 75) {
+      const mid = angle + sweep / 2;
+      const labelR = (R + r) / 2;
+      const lx = cx + Math.cos(mid) * labelR;
+      const ly = cy + Math.sin(mid) * labelR;
+      const pct = Math.round(seg.val / total * 100);
+      if (pct > 12) {
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(seg.label, lx, ly);
+      }
+    }
+    angle += sweep;
+  });
+
+  // 中心：箭头 + E/I 标签
+  const arrowSize = 8 + Math.abs(eiValue - 50) / 50 * 12; // 8~20
+  drawArrow(ctx, cx, cy, arrowSize, isE ? 'out' : 'in');
+
+  // E/I 标签
+  const labelDist = Math.min(r - 8, r * 0.7);
+  ctx.font = `bold ${Math.max(12, arrowSize * 0.8)}px sans-serif`;
+  ctx.fillStyle = isE ? '#E74C3C' : '#6C5CE7';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(isE ? 'E' : 'I', cx, cy - labelDist * 0.6);
+  ctx.font = `${Math.max(9, arrowSize * 0.5)}px sans-serif`;
+  ctx.fillStyle = '#999';
+  ctx.fillText(eiValue, cx, cy + labelDist * 0.5);
+}
+
+// 画箭头（向外或向内的四向箭头）
+function drawArrow(ctx, cx, cy, size, direction) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.strokeStyle = direction === 'out' ? 'rgba(231,76,60,0.5)' : 'rgba(108,92,231,0.5)';
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = 'round';
+
+  if (direction === 'out') {
+    // 四个向外箭头
+    const dirs = [[0,-1],[0,1],[-1,0],[1,0]];
+    dirs.forEach(([dx, dy]) => {
+      const startX = dx * size * 0.3;
+      const startY = dy * size * 0.3;
+      const endX = dx * size;
+      const endY = dy * size;
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+      // 箭头尖
+      const headSize = size * 0.3;
+      const angle = Math.atan2(dy, dx);
+      ctx.beginPath();
+      ctx.moveTo(endX, endY);
+      ctx.lineTo(endX - Math.cos(angle - 0.5) * headSize, endY - Math.sin(angle - 0.5) * headSize);
+      ctx.lineTo(endX - Math.cos(angle + 0.5) * headSize, endY - Math.sin(angle + 0.5) * headSize);
+      ctx.closePath();
+      ctx.fill();
+    });
+  } else {
+    // 四个向内箭头
+    const dirs = [[0,-1],[0,1],[-1,0],[1,0]];
+    dirs.forEach(([dx, dy]) => {
+      const startX = dx * size;
+      const startY = dy * size;
+      const endX = dx * size * 0.3;
+      const endY = dy * size * 0.3;
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+      // 箭头尖（朝内）
+      const headSize = size * 0.3;
+      const angle = Math.atan2(-dy, -dx);
+      ctx.beginPath();
+      ctx.moveTo(endX, endY);
+      ctx.lineTo(endX - Math.cos(angle - 0.5) * headSize, endY - Math.sin(angle - 0.5) * headSize);
+      ctx.lineTo(endX - Math.cos(angle + 0.5) * headSize, endY - Math.sin(angle + 0.5) * headSize);
+      ctx.closePath();
+      ctx.fill();
+    });
+  }
+
+  ctx.restore();
+}
+
+// 绘制所有对比
+drawChart('e_person', 65);     // E人 65
+drawChart('i_person', 35);     // I人 35
+drawChart('extreme_e', 95);    // 极端E
+drawChart('extreme_i', 5);     // 极端I
+drawChart('mid_e', 55);        // 轻微偏E
+drawChart('mid_i', 55);        // 轻微偏I（这里用45表示I占主导）
+</script>
+</body>
+</html>

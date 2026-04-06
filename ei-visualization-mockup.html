@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E/I 可视化对比</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1a1a2e; color: #fff; font-family: -apple-system, 'PingFang SC', sans-serif; padding: 20px; }
+h1 { text-align: center; margin-bottom: 8px; font-size: 20px; }
+.subtitle { text-align: center; color: #888; margin-bottom: 30px; font-size: 13px; }
+.row { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-bottom: 40px; }
+.card { background: #fff; border-radius: 16px; padding: 20px; color: #333; text-align: center; min-width: 200px; max-width: 280px; flex: 1; }
+.card h3 { font-size: 14px; color: #666; margin-bottom: 12px; }
+.card canvas { display: block; margin: 0 auto; }
+.card .desc { font-size: 11px; color: #999; line-height: 1.5; margin-top: 10px; }
+.label-e { color: #E74C3C; font-weight: bold; }
+.label-i { color: #6C5CE7; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1>🔮 E/I 怎么体现？</h1>
+<p class="subtitle">同一个红色环形图，三种不同的 E/I 表达方式 — 左边E人，右边I人</p>
+
+<!-- ===== 方式1：能量射线 ===== -->
+<h2 style="text-align:center; color:#aaa; margin-bottom:16px;">方式一：能量射线</h2>
+<p class="subtitle" style="margin-top:-12px; margin-bottom:20px;">E人 = 光芒向外放射 | I人 = 光芒向内收敛</p>
+<div class="row">
+  <div class="card">
+    <h3><span class="label-e">E人</span> — 能量向外扩散</h3>
+    <canvas id="rays_e" width="240" height="240"></canvas>
+    <p class="desc">从中心向外发散的光线<br>像太阳一样，光芒四射</p>
+  </div>
+  <div class="card">
+    <h3><span class="label-i">I人</span> — 能量向内收聚</h3>
+    <canvas id="rays_i" width="240" height="240"></canvas>
+    <p class="desc">从外向中心汇聚的光线<br>像月亮一样，安静内敛</p>
+  </div>
+</div>
+
+<!-- ===== 方式2：光晕/氛围 ===== -->
+<h2 style="text-align:center; color:#aaa; margin-bottom:16px;">方式二：光晕氛围</h2>
+<p class="subtitle" style="margin-top:-12px; margin-bottom:20px;">E人 = 明亮扩散的光晕 | I人 = 柔和收敛的光晕</p>
+<div class="row">
+  <div class="card" style="background: linear-gradient(135deg, #fff5f5, #fff);">
+    <h3><span class="label-e">E人</span> — 温暖明亮</h3>
+    <canvas id="glow_e" width="240" height="240"></canvas>
+    <p class="desc">整个图都被暖色光晕包裹<br>第一眼就感觉到热情</p>
+  </div>
+  <div class="card" style="background: linear-gradient(135deg, #f5f5ff, #fff);">
+    <h3><span class="label-i">I人</span> — 清冷安静</h3>
+    <canvas id="glow_i" width="240" height="240"></canvas>
+    <p class="desc">光晕柔和内敛，向中心聚拢<br>第一眼就感觉到沉稳</p>
+  </div>
+</div>
+
+<!-- ===== 方式3：粒子扩散 ===== -->
+<h2 style="text-align:center; color:#aaa; margin-bottom:16px;">方式三：粒子扩散</h2>
+<p class="subtitle" style="margin-top:-12px; margin-bottom:20px;">E人 = 粒子散布四周（人脉广） | I人 = 粒子聚在中心（圈子小但深）</p>
+<div class="row">
+  <div class="card">
+    <h3><span class="label-e">E人</span> — 星点散布四周</h3>
+    <canvas id="dots_e" width="240" height="240"></canvas>
+    <p class="desc">周围有很多小光点<br>代表社交能量扩散到人群中</p>
+  </div>
+  <div class="card">
+    <h3><span class="label-i">I人</span> — 星点聚在中心</h3>
+    <canvas id="dots_i" width="240" height="240"></canvas>
+    <p class="desc">光点紧贴环形图<br>代表能量聚集在内心世界</p>
+  </div>
+</div>
+
+<script>
+const SEGMENTS = [
+  { key: 'red', val: 55, color: '#E74C3C', label: '红色' },
+  { key: 'blue', val: 20, color: '#3498DB', label: '蓝色' },
+  { key: 'yellow', val: 15, color: '#F39C12', label: '黄色' },
+  { key: 'green', val: 10, color: '#2ECC71', label: '绿色' }
+];
+const total = SEGMENTS.reduce((s, seg) => s + seg.val, 0);
+
+function drawDonut(ctx, cx, cy, R, r) {
+  let angle = -Math.PI / 2;
+  SEGMENTS.forEach(seg => {
+    const sweep = (seg.val / total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, angle, angle + sweep);
+    ctx.arc(cx, cy, r, angle + sweep, angle, true);
+    ctx.closePath();
+    ctx.fillStyle = seg.color;
+    ctx.fill();
+    angle += sweep;
+  });
+}
+
+// ===== 方式1：能量射线 =====
+function drawRays(canvasId, isE) {
+  const c = document.getElementById(canvasId);
+  const ctx = c.getContext('2d');
+  const cx = 120, cy = 120, R = 72, r = 42;
+
+  if (isE) {
+    // E人：从中心向外放射的光线
+    for (let i = 0; i < 24; i++) {
+      const a = (i / 24) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * (R + 4), cy + Math.sin(a) * (R + 4));
+      ctx.lineTo(cx + Math.cos(a) * (R + 22 + (i % 3) * 6), cy + Math.sin(a) * (R + 22 + (i % 3) * 6));
+      ctx.strokeStyle = 'rgba(231,76,60,0.2)';
+      ctx.lineWidth = 1.5;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    }
+    const glow = ctx.createRadialGradient(cx, cy, R, cx, cy, R + 38);
+    glow.addColorStop(0, 'rgba(231,76,60,0.12)');
+    glow.addColorStop(1, 'rgba(231,76,60,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R + 38, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    // I人：从外向内收敛的光线
+    for (let i = 0; i < 24; i++) {
+      const a = (i / 24) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * (R + 20 + (i % 3) * 6), cy + Math.sin(a) * (R + 20 + (i % 3) * 6));
+      ctx.lineTo(cx + Math.cos(a) * (R + 2), cy + Math.sin(a) * (R + 2));
+      ctx.strokeStyle = 'rgba(108,92,231,0.18)';
+      ctx.lineWidth = 1.5;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    }
+    const glow = ctx.createRadialGradient(cx, cy, r - 10, cx, cy, R + 12);
+    glow.addColorStop(0, 'rgba(108,92,231,0.1)');
+    glow.addColorStop(1, 'rgba(108,92,231,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R + 12, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  drawDonut(ctx, cx, cy, R, r);
+  ctx.font = 'bold 15px sans-serif';
+  ctx.fillStyle = '#333';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(isE ? 'E人' : 'I人', cx, cy - 5);
+  ctx.font = '10px sans-serif';
+  ctx.fillStyle = '#999';
+  ctx.fillText(isE ? '65' : '35', cx, cy + 11);
+}
+
+drawRays('rays_e', true);
+drawRays('rays_i', false);
+
+// ===== 方式2：光晕氛围 =====
+function drawGlow(canvasId, isE) {
+  const c = document.getElementById(canvasId);
+  const ctx = c.getContext('2d');
+  const cx = 120, cy = 120, R = 72, r = 42;
+
+  if (isE) {
+    const glow = ctx.createRadialGradient(cx, cy, r, cx, cy, R + 40);
+    glow.addColorStop(0, 'rgba(255,107,107,0.1)');
+    glow.addColorStop(0.5, 'rgba(255,159,67,0.05)');
+    glow.addColorStop(1, 'rgba(255,200,100,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R + 40, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, R + 25);
+    glow.addColorStop(0, 'rgba(162,155,254,0.1)');
+    glow.addColorStop(0.6, 'rgba(108,92,231,0.03)');
+    glow.addColorStop(1, 'rgba(108,92,231,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R + 25, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  drawDonut(ctx, cx, cy, R, r);
+  ctx.font = 'bold 15px sans-serif';
+  ctx.fillStyle = '#333';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(isE ? 'E人' : 'I人', cx, cy - 5);
+  ctx.font = '10px sans-serif';
+  ctx.fillStyle = '#999';
+  ctx.fillText(isE ? '65' : '35', cx, cy + 11);
+}
+
+drawGlow('glow_e', true);
+drawGlow('glow_i', false);
+
+// ===== 方式3：粒子 =====
+function drawDots(canvasId, isE) {
+  const c = document.getElementById(canvasId);
+  const ctx = c.getContext('2d');
+  const cx = 120, cy = 120, R = 72, r = 42;
+
+  // 固定随机种子
+  let s = isE ? 42 : 99;
+  const rng = () => { s = (s * 16807 + 0) % 2147483647; return s / 2147483647; };
+  const colors = SEGMENTS.map(seg => seg.color);
+  const dotCount = isE ? 60 : 15;
+
+  for (let i = 0; i < dotCount; i++) {
+    const angle = rng() * Math.PI * 2;
+    const dist = isE ? (R + 8 + rng() * 38) : (R - 6 + rng() * 14);
+    const x = cx + Math.cos(angle) * dist;
+    const y = cy + Math.sin(angle) * dist;
+    const dotR = 1.5 + rng() * 2.5;
+    const alpha = isE ? (0.2 + rng() * 0.3) : (0.4 + rng() * 0.4);
+    ctx.beginPath();
+    ctx.arc(x, y, dotR, 0, Math.PI * 2);
+    const color = colors[Math.floor(rng() * colors.length)];
+    ctx.fillStyle = color + Math.round(alpha * 255).toString(16).padStart(2, '0');
+    ctx.fill();
+  }
+
+  drawDonut(ctx, cx, cy, R, r);
+  ctx.font = 'bold 15px sans-serif';
+  ctx.fillStyle = '#333';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(isE ? 'E人' : 'I人', cx, cy - 5);
+  ctx.font = '10px sans-serif';
+  ctx.fillStyle = '#999';
+  ctx.fillText(isE ? '65' : '35', cx, cy + 11);
+}
+
+drawDots('dots_e', true);
+drawDots('dots_i', false);
+</script>
+</body>
+</html>

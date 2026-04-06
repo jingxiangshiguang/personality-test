@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>内环大小对比</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1a1a2e; color: #fff; font-family: -apple-system, 'PingFang SC', sans-serif; padding: 30px 20px; }
+h1 { text-align: center; font-size: 20px; margin-bottom: 30px; }
+.row { display: flex; flex-wrap: wrap; gap: 30px; justify-content: center; margin-bottom: 50px; }
+.card { background: #fff; border-radius: 20px; padding: 24px; color: #333; text-align: center; width: 300px; }
+.card h3 { font-size: 14px; margin-bottom: 12px; }
+.card canvas { display: block; margin: 0 auto; }
+.card .note { font-size: 11px; color: #888; line-height: 1.7; margin-top: 14px; border-top: 1px solid #eee; padding-top: 12px; }
+.label-e { color: #E74C3C; font-weight: bold; }
+.label-i { color: #6C5CE7; font-weight: bold; }
+h2 { text-align: center; font-size: 14px; color: #aaa; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<h1>🔍 内环大小对比</h1>
+<h2>做法A：外环固定，只变内环（推荐）</h2>
+<div class="row">
+  <div class="card">
+    <h3><span class="label-e">红色E人</span></h3>
+    <canvas id="a_e95" width="260" height="260"></canvas>
+    <div class="note">内环大 → 白色中心很小<br>颜色几乎填满，能量外溢</div>
+  </div>
+  <div class="card">
+    <h3>红色E人</h3>
+    <canvas id="a_e65" width="260" height="260"></canvas>
+    <div class="note">内环中等 → 白色中心适中</div>
+  </div>
+  <div class="card">
+    <h3>绿色I人</h3>
+    <canvas id="a_i55" width="260" height="260"></canvas>
+    <div class="note">内环偏小 → 白色中心偏大</div>
+  </div>
+  <div class="card">
+    <h3><span class="label-i">绿色I人</span></h3>
+    <canvas id="a_i5" width="260" height="260"></canvas>
+    <div class="note">内环很小 → 白色中心很大<br>内在空间最多，能量收敛</div>
+  </div>
+</div>
+
+<h2>做法B：内外环一起缩（之前）</h2>
+<div class="row">
+  <div class="card">
+    <h3><span class="label-e">E人 95%</span></h3>
+    <canvas id="b_e95" width="260" height="260"></canvas>
+    <div class="note">整个环形大 → 占据更多空间</div>
+  </div>
+  <div class="card">
+    <h3><span class="label-i">I人 5%</span></h3>
+    <canvas id="b_i5" width="260" height="260"></canvas>
+    <div class="note">整个环形小 → 四色比例看不清</div>
+  </div>
+</div>
+
+<script>
+const SEGMENTS = [
+  { val: 55, color: '#E74C3C' },
+  { val: 20, color: '#3498DB' },
+  { val: 15, color: '#F39C12' },
+  { val: 10, color: '#2ECC71' }
+];
+const total = SEGMENTS.reduce((s, seg) => s + seg.val, 0);
+
+function drawDonut(ctx, cx, cy, R, r) {
+  let angle = -Math.PI / 2;
+  SEGMENTS.forEach(seg => {
+    const sweep = (seg.val / total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, angle, angle + sweep);
+    ctx.arc(cx, cy, r, angle + sweep, angle, true);
+    ctx.closePath();
+    ctx.fillStyle = seg.color;
+    ctx.fill();
+    angle += sweep;
+  });
+}
+
+function drawArrows(ctx, cx, cy, r, isE, eiValue) {
+  const arrowLen = 5 + Math.abs(eiValue - 50) / 50 * 10;
+  const arrowEdge = r - 2;
+  const arrowColor = isE ? 'rgba(231,76,60,0.4)' : 'rgba(108,92,231,0.4)';
+  const arrowHeadSize = arrowLen * 0.45;
+  const dirs = [[0,-1],[0,1],[-1,0],[1,0]];
+  dirs.forEach(([dx, dy]) => {
+    ctx.save();
+    ctx.strokeStyle = arrowColor;
+    ctx.fillStyle = arrowColor;
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+    let sx, sy, ex, ey;
+    if (isE) {
+      sx = cx + dx * (arrowEdge - arrowLen); sy = cy + dy * (arrowEdge - arrowLen);
+      ex = cx + dx * arrowEdge; ey = cy + dy * arrowEdge;
+    } else {
+      sx = cx + dx * arrowEdge; sy = cy + dy * arrowEdge;
+      ex = cx + dx * (arrowEdge - arrowLen); ey = cy + dy * (arrowEdge - arrowLen);
+    }
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
+    const a = Math.atan2(ey - sy, ex - sx);
+    ctx.beginPath(); ctx.moveTo(ex, ey);
+    ctx.lineTo(ex - Math.cos(a - 0.45) * arrowHeadSize, ey - Math.sin(a - 0.45) * arrowHeadSize);
+    ctx.lineTo(ex - Math.cos(a + 0.45) * arrowHeadSize, ey - Math.sin(a + 0.45) * arrowHeadSize);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  });
+}
+
+// 做法A：外环固定，只变内环
+function drawA(canvasId, eiValue) {
+  const c = document.getElementById(canvasId);
+  const ctx = c.getContext('2d');
+  const cx = 130, cy = 130;
+  const R = 100; // 外环固定
+  const isE = eiValue >= 50;
+  const eiNorm = eiValue / 100;
+  const iNorm = 1 - eiNorm;
+  // 内环：E大(60) → I小(25)
+  const r = 25 + eiNorm * 35; // 25~60
+
+  // 光晕
+  if (isE) {
+    const glow = ctx.createRadialGradient(cx, cy, R - 5, cx, cy, R + 15);
+    glow.addColorStop(0, `rgba(255,107,107,${0.04 + eiNorm * 0.06})`);
+    glow.addColorStop(1, 'rgba(255,200,100,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(cx, cy, R + 15, 0, Math.PI * 2); ctx.fill();
+  } else {
+    const glow = ctx.createRadialGradient(cx, cy, r * 0.2, cx, cy, R + 10);
+    glow.addColorStop(0, `rgba(162,155,254,${0.05 + iNorm * 0.08})`);
+    glow.addColorStop(1, 'rgba(108,92,231,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(cx, cy, R + 10, 0, Math.PI * 2); ctx.fill();
+  }
+
+  drawDonut(ctx, cx, cy, R, r);
+
+  // 四色比例标签（标在外环外面）
+  const labelR = R + 18;
+  let angle2 = -Math.PI / 2;
+  const colorLabels = ['红色', '蓝色', '黄色', '绿色'];
+  SEGMENTS.forEach((seg, i) => {
+    const sweep = (seg.val / total) * Math.PI * 2;
+    if (seg.val / total > 0.08) {
+      const mid = angle2 + sweep / 2;
+      const lx = cx + Math.cos(mid) * labelR;
+      const ly = cy + Math.sin(mid) * labelR;
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillStyle = seg.color;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(colorLabels[i], lx, ly - 7);
+      ctx.font = '11px sans-serif';
+      ctx.fillStyle = '#777';
+      ctx.fillText(Math.round(seg.val / total * 100) + '%', lx, ly + 8);
+    }
+    angle2 += sweep;
+  });
+
+  drawArrows(ctx, cx, cy, r, isE, eiValue);
+
+  // 中心文字
+  ctx.font = 'bold 14px sans-serif';
+  ctx.fillStyle = isE ? '#D63031' : '#6C5CE7';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(isE ? 'E人' : 'I人', cx, cy - 8);
+  ctx.font = 'bold 16px sans-serif';
+  ctx.fillStyle = '#555';
+  ctx.fillText(eiValue + '%', cx, cy + 12);
+}
+
+// 做法B：内外环一起缩
+function drawB(canvasId, eiValue) {
+  const c = document.getElementById(canvasId);
+  const ctx = c.getContext('2d');
+  const cx = 130, cy = 130;
+  const isE = eiValue >= 50;
+  const eiNorm = eiValue / 100;
+  const R = 58 + eiNorm * 42; // 58~100
+  const r = R * 0.55;
+
+  if (isE) {
+    const glow = ctx.createRadialGradient(cx, cy, R * 0.85, cx, cy, R + 15 + eiNorm * 20);
+    glow.addColorStop(0, `rgba(255,107,107,${0.04 + eiNorm * 0.08})`);
+    glow.addColorStop(1, 'rgba(255,200,100,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(cx, cy, R + 15 + eiNorm * 20, 0, Math.PI * 2); ctx.fill();
+  } else {
+    const glow = ctx.createRadialGradient(cx, cy, r * 0.2, cx, cy, R + 10);
+    glow.addColorStop(0, 'rgba(162,155,254,0.1)');
+    glow.addColorStop(1, 'rgba(108,92,231,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(cx, cy, R + 10, 0, Math.PI * 2); ctx.fill();
+  }
+
+  drawDonut(ctx, cx, cy, R, r);
+  drawArrows(ctx, cx, cy, r, isE, eiValue);
+
+  ctx.font = 'bold 13px sans-serif';
+  ctx.fillStyle = isE ? '#D63031' : '#6C5CE7';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(isE ? 'E人' : 'I人', cx, cy - 9);
+  ctx.font = 'bold 15px sans-serif';
+  ctx.fillStyle = '#555';
+  ctx.fillText(eiValue + '%', cx, cy + 11);
+}
+
+drawA('a_e95', 95);
+drawA('a_e65', 65);
+drawA('a_i55', 55);
+drawA('a_i5', 5);
+drawB('b_e95', 95);
+drawB('b_i5', 5);
+</script>
+</body>
+</html>

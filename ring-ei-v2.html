@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>环形图 E/I 效果（优化版）</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1a1a2e; color: #fff; font-family: -apple-system, 'PingFang SC', sans-serif; padding: 30px 20px; }
+h1 { text-align: center; font-size: 20px; margin-bottom: 8px; }
+.subtitle { text-align: center; color: #888; font-size: 13px; margin-bottom: 40px; line-height: 1.6; }
+.row { display: flex; flex-wrap: wrap; gap: 30px; justify-content: center; margin-bottom: 50px; }
+.card { background: #fff; border-radius: 20px; padding: 30px 24px 24px; color: #333; text-align: center; width: 320px; }
+.card h3 { font-size: 15px; margin-bottom: 16px; }
+.card canvas { display: block; margin: 0 auto; }
+.card .note { font-size: 12px; color: #888; line-height: 1.7; margin-top: 16px; border-top: 1px solid #eee; padding-top: 14px; }
+.label-e { color: #E74C3C; font-weight: bold; }
+.label-i { color: #6C5CE7; font-weight: bold; }
+.section { text-align: center; margin-bottom: 20px; }
+.section h2 { font-size: 14px; color: #aaa; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<h1>🎨 环形图 E/I 效果（优化版）</h1>
+<p class="subtitle">去掉放射线 | 箭头放内环外侧 | 中心显示"X人 XX%"</p>
+
+<div class="row">
+  <div class="card">
+    <h3><span class="label-e">E人 65%</span></h3>
+    <canvas id="e65" width="280" height="280"></canvas>
+    <div class="note">环形较大 + 光晕向外 + 箭头朝外</div>
+  </div>
+  <div class="card">
+    <h3><span class="label-i">I人 35%</span></h3>
+    <canvas id="i35" width="280" height="280"></canvas>
+    <div class="note">环形较小 + 光晕向内 + 箭头朝内</div>
+  </div>
+</div>
+
+<div class="section"><h2>极端对比</h2></div>
+<div class="row">
+  <div class="card">
+    <h3><span class="label-e">E人 95%</span></h3>
+    <canvas id="e95" width="280" height="280"></canvas>
+    <div class="note">环形最大、箭头最大、光晕最亮</div>
+  </div>
+  <div class="card">
+    <h3><span class="label-i">I人 5%</span></h3>
+    <canvas id="i5" width="280" height="280"></canvas>
+    <div class="note">环形最小、箭头最小、光晕最收敛</div>
+  </div>
+</div>
+
+<div class="section"><h2>中间值（微妙差异）</h2></div>
+<div class="row">
+  <div class="card">
+    <h3>E人 55%</h3>
+    <canvas id="e55" width="280" height="280"></canvas>
+    <div class="note">箭头和光晕都很微弱</div>
+  </div>
+  <div class="card">
+    <h3>I人 55%</h3>
+    <canvas id="i55" width="280" height="280"></canvas>
+    <div class="note">箭头和光晕都很微弱</div>
+  </div>
+</div>
+
+<script>
+const SEGMENTS = [
+  { key: 'red', val: 55, color: '#E74C3C' },
+  { key: 'blue', val: 20, color: '#3498DB' },
+  { key: 'yellow', val: 15, color: '#F39C12' },
+  { key: 'green', val: 10, color: '#2ECC71' }
+];
+const total = SEGMENTS.reduce((s, seg) => s + seg.val, 0);
+
+function drawChart(canvasId, eiValue) {
+  const c = document.getElementById(canvasId);
+  const ctx = c.getContext('2d');
+  const W = 280, cx = W / 2, cy = W / 2;
+  const isE = eiValue >= 50;
+  const eiNorm = eiValue / 100;
+  const iNorm = 1 - eiNorm;
+
+  // 环形大小随 E/I 变化
+  const R = 58 + eiNorm * 40; // 58~98
+  const r = R * 0.55;          // 内环半径
+
+  // 光晕（不含放射线）
+  if (isE) {
+    const glowR = R + 15 + eiNorm * 25;
+    const glow = ctx.createRadialGradient(cx, cy, R * 0.85, cx, cy, glowR);
+    glow.addColorStop(0, `rgba(255,107,107,${0.05 + eiNorm * 0.08})`);
+    glow.addColorStop(0.6, `rgba(255,180,80,${0.02 + eiNorm * 0.04})`);
+    glow.addColorStop(1, 'rgba(255,200,100,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(cx, cy, glowR, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    const glow = ctx.createRadialGradient(cx, cy, r * 0.2, cx, cy, R + 12);
+    glow.addColorStop(0, `rgba(162,155,254,${0.06 + iNorm * 0.1})`);
+    glow.addColorStop(0.7, `rgba(108,92,231,${0.02 + iNorm * 0.04})`);
+    glow.addColorStop(1, 'rgba(108,92,231,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R + 12, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 四色环形图
+  let angle = -Math.PI / 2;
+  SEGMENTS.forEach(seg => {
+    const sweep = (seg.val / total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, angle, angle + sweep);
+    ctx.arc(cx, cy, r, angle + sweep, angle, true);
+    ctx.closePath();
+    ctx.fillStyle = seg.color;
+    ctx.fill();
+    angle += sweep;
+  });
+
+  // 箭头放在内环内侧边缘（白色区域里，紧贴内环）
+  const arrowLen = 7 + Math.abs(eiValue - 50) / 50 * 10; // 7~17
+  const arrowEdge = r - 2; // 内环内侧边缘
+  const arrowColor = isE ? 'rgba(231,76,60,0.45)' : 'rgba(108,92,231,0.45)';
+  const arrowHeadSize = arrowLen * 0.45;
+  const directions = [
+    [0, -1],  // 上
+    [0, 1],   // 下
+    [-1, 0],  // 左
+    [1, 0]    // 右
+  ];
+
+  directions.forEach(([dx, dy]) => {
+    ctx.save();
+    ctx.strokeStyle = arrowColor;
+    ctx.fillStyle = arrowColor;
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+
+    let startX, startY, endX, endY;
+    if (isE) {
+      // 箭头朝外：从白色深处指向内环边缘
+      startX = cx + dx * (arrowEdge - arrowLen);
+      startY = cy + dy * (arrowEdge - arrowLen);
+      endX = cx + dx * arrowEdge;
+      endY = cy + dy * arrowEdge;
+    } else {
+      // 箭头朝内：从内环边缘指向白色深处
+      startX = cx + dx * arrowEdge;
+      startY = cy + dy * arrowEdge;
+      endX = cx + dx * (arrowEdge - arrowLen);
+      endY = cy + dy * (arrowEdge - arrowLen);
+    }
+
+    // 线段
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+
+    // 箭头尖
+    const a = Math.atan2(endY - startY, endX - startX);
+    ctx.beginPath();
+    ctx.moveTo(endX, endY);
+    ctx.lineTo(endX - Math.cos(a - 0.45) * arrowHeadSize, endY - Math.sin(a - 0.45) * arrowHeadSize);
+    ctx.lineTo(endX - Math.cos(a + 0.45) * arrowHeadSize, endY - Math.sin(a + 0.45) * arrowHeadSize);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+  });
+
+  // 中心文字：E人 65% 或 I人 35%
+  // 放在内环中心，保证不与环形和箭头重叠
+  const centerFontSize = 13;
+  const label = isE ? 'E人' : 'I人';
+  const value = eiValue + '%';
+
+  // E人文字用暖色，I人文字用冷色
+  ctx.font = `bold ${centerFontSize}px sans-serif`;
+  ctx.fillStyle = isE ? '#D63031' : '#6C5CE7';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, cx, cy - 10);
+
+  ctx.font = `bold ${centerFontSize + 2}px sans-serif`;
+  ctx.fillStyle = '#555';
+  ctx.fillText(value, cx, cy + 10);
+}
+
+drawChart('e65', 65);
+drawChart('i35', 35);
+drawChart('e95', 95);
+drawChart('i5', 5);
+drawChart('e55', 55);
+drawChart('i55', 55);
+</script>
+</body>
+</html>
